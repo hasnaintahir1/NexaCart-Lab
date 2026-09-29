@@ -64,6 +64,14 @@ export const action = async ({ request, params }) => {
   const vendor = formData.get("vendor");
   const status = formData.get("status");
 
+  // ✅ Validation: title khali nahi ho sakta
+  if (!title || title.trim() === "") {
+    return {
+      success: false,
+      errors: [{ field: ["title"], message: "Title cannot be empty." }],
+    };
+  }
+
   const productId = `gid://shopify/Product/${params.id}`;
 
   // 1. MongoDB log mein oldValue save karne ke liye pehle purana title query karein
@@ -131,9 +139,9 @@ export const action = async ({ request, params }) => {
     }
   }
 
-  return { 
+  return {
     success: isSuccess,
-    errors: responseJson.data?.productUpdate?.userErrors || []
+    errors: responseJson.data?.productUpdate?.userErrors || [],
   };
 };
 
@@ -180,6 +188,14 @@ export default function ProductDetail() {
           </Layout.Section>
         )}
 
+        {actionData?.success === false && actionData?.errors?.length > 0 && (
+          <Layout.Section>
+            <Banner tone="critical">
+              <p>{actionData.errors[0].message}</p>
+            </Banner>
+          </Layout.Section>
+        )}
+
         <Layout.Section>
           <Card>
             <BlockStack gap="400">
@@ -189,6 +205,12 @@ export default function ProductDetail() {
                   value={title}
                   onChange={setTitle}
                   autoComplete="off"
+                  error={
+                    actionData?.success === false &&
+                    actionData?.errors?.[0]?.field?.includes("title")
+                      ? "Title is required"
+                      : undefined
+                  }
                 />
                 <TextField
                   label="Description"

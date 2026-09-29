@@ -1,4 +1,5 @@
-import { useLoaderData, useNavigate } from "react-router";
+// eslint-disable-next-line no-unused-vars
+import { useLoaderData, useNavigate, useSearchParams, useSubmit } from "react-router";
 import {
   Page,
   Layout,
@@ -12,18 +13,33 @@ import {
   BlockStack,
   InlineStack,
   EmptyState,
+  Pagination,
 } from "@shopify/polaris";
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
+  const url = new URL(request.url);
+  const cursor = url.searchParams.get("cursor");
+  const direction = url.searchParams.get("direction") || "next";
+  const searchTerm = url.searchParams.get("q") || "";
+
+  const paginationArgs =
+    direction === "prev"
+      ? `last: 10, before: "${cursor}"`
+      : cursor
+      ? `first: 10, after: "${cursor}"`
+      : `first: 10`;
+
+  const searchFilter = searchTerm ? `, query: "title:*${searchTerm}*"` : "";
 
   const response = await admin.graphql(`
     #graphql
     query getProducts {
-      products(first: 20) {
+      products(${paginationArgs}${searchFilter}) {
         edges {
+          cursor
           node {
             id
             title
@@ -45,6 +61,10 @@ export const loader = async ({ request }) => {
             }
           }
         }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+        }
       }
     }
   `);
@@ -52,19 +72,40 @@ export const loader = async ({ request }) => {
   const responseJson = await response.json();
   return {
     products: responseJson.data?.products?.edges || [],
+    pageInfo: responseJson.data?.products?.pageInfo || {},
+    searchTerm,
   };
 };
 
 export default function Index() {
-  const { products } = useLoaderData();
+  const { products, pageInfo, searchTerm } = useLoaderData();
   const navigate = useNavigate();
-  const [queryValue, setQueryValue] = useState("");
+  // eslint-disable-next-line no-unused-vars
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [queryValue, setQueryValue] = useState(searchTerm || "");
 
   const handleSearchChange = useCallback((value) => setQueryValue(value), []);
 
-  const filteredProducts = products.filter(({ node }) =>
-    node.title.toLowerCase().includes(queryValue.toLowerCase())
-  );
+  // Debounce effect: Jaise hi user type karega, 400ms baad khud hi URL update ho jayega
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (queryValue !== searchTerm) {
+        setSearchParams(queryValue ? { q: queryValue } : {});
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [queryValue, searchTerm, setSearchParams]);
+
+  const goNext = () => {
+    const lastCursor = products[products.length - 1]?.cursor;
+    setSearchParams({ cursor: lastCursor, direction: "next", q: queryValue });
+  };
+
+  const goPrev = () => {
+    const firstCursor = products[0]?.cursor;
+    setSearchParams({ cursor: firstCursor, direction: "prev", q: queryValue });
+  };
 
   return (
     <Page title="Product Manager Dashboard">
@@ -79,14 +120,17 @@ export default function Index() {
                   onChange={handleSearchChange}
                   placeholder="Filter by title..."
                   clearButton
-                  onClearButtonClick={() => setQueryValue("")}
+                  onClearButtonClick={() => {
+                    setQueryValue("");
+                    setSearchParams({});
+                  }}
                   autoComplete="off"
                 />
               </div>
 
               <ResourceList
                 resourceName={{ singular: "product", plural: "products" }}
-                items={filteredProducts}
+                items={products}
                 emptyState={
                   <EmptyState heading="No products found" image="">
                     <p>Try changing your search filter.</p>
@@ -138,6 +182,15 @@ export default function Index() {
                   );
                 }}
               />
+
+              <div style={{ padding: "16px", display: "flex", justifyContent: "center" }}>
+                <Pagination
+                  hasPrevious={pageInfo.hasPreviousPage}
+                  onPrevious={goPrev}
+                  hasNext={pageInfo.hasNextPage}
+                  onNext={goNext}
+                />
+              </div>
             </BlockStack>
           </Card>
         </Layout.Section>
