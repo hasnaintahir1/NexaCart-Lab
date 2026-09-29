@@ -38,7 +38,7 @@ const productActivitySchema = new mongoose.Schema({
 
 export const ProductActivity = mongoose.models.ProductActivity || mongoose.model("ProductActivity", productActivitySchema);
 Shopify App Configuration
-The app configuration and webhook subscriptions are managed through the shopify.app.toml file:
+The app configuration and webhook subscriptions are managed through the shopify.app.toml file:```
 
 Ini, TOML
 api_version = "2024-07"
