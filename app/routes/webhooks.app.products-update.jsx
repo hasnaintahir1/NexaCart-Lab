@@ -1,6 +1,6 @@
 import { authenticate } from "../shopify.server";
 import { connectDB } from "../db.mongoose";
-import ProductActivity from "../models/ProductActivity.model";
+import { ProductActivity } from "../models/ProductActivity.model";
 
 export const action = async ({ request }) => {
   const { topic, shop, payload } = await authenticate.webhook(request);
