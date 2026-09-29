@@ -66,7 +66,6 @@ Create a .env file in the root directory based on the .env.example file and popu
 
 Code snippet
 MONGO_URI=your_mongodb_atlas_connection_string
-
 Run the Application:
 
 Bash
@@ -84,8 +83,8 @@ Ensure the webhook payload is received at the /webhooks/app/products-update endp
 
 Verify that the activity log is successfully inserted into the respective collection in MongoDB Compass or Atlas.
 
-**Architecture & Technical Decisions**
+Architecture & Technical Decisions
 The application follows a modern server-rendered architecture using Remix, which integrates natively with Shopify's App Bridge and Polaris design system. GraphQL is utilized for interacting with Shopify's Admin API to ensure optimal data fetching and precise mutation execution. MongoDB Atlas is chosen for its scalability and ease of integration with Node.js via Mongoose for handling activity audit logs.
 
-**Conclusion & Learning Experience**
+Conclusion & Learning Experience
 Through the development of this project, I gained hands-on experience building production-ready Shopify applications. Working on this assignment allowed me to deeply understand Shopify Polaris for designing native-feeling merchant interfaces, master GraphQL queries and mutations for interacting with Shopify backend services, and implement webhook architecture to synchronize external databases like MongoDB with real-time store events.
